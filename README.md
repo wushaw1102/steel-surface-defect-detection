@@ -39,11 +39,8 @@ pretrained weights are actually worth.
 
 ## Step by step, in pictures
 
-Every panel below is produced by a script in this repository — nothing is a mock-up or an
-illustration sourced from elsewhere. The command that rebuilds each one is given at the end.
 
-### 1/8 · The data — how hard the task actually is
-
+### 1/8 · The data 
 ![six classes](assets/step1_samples.png)
 
 Six classes, three samples each. Low contrast, thin structures, boundaries that are genuinely
