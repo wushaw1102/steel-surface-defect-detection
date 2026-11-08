@@ -125,7 +125,7 @@ confusion matrix above.
 
 ![batch inference](assets/step8_preview.gif)
 
-Every frame is inferred at render time, not assembled from stored results. The header shows the
+ The header shows the
 frame index and the confidence threshold in use.
 
 Rebuild all of it with one command:
