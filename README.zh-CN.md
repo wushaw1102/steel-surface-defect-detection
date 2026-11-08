@@ -17,10 +17,10 @@
 
 ## 目录
 
+- [一步一步看（8 步，全图）](#一步一步看8-步全图)
 - [实验结果](#实验结果)
 - [逐类别拆解](#逐类别拆解)
 - [这几个数字到底说明了什么](#这几个数字到底说明了什么)
-- [定性检查](#定性检查)
 - [快速开始](#快速开始)
 - [流程](#流程)
 - [仓库结构](#仓库结构)
@@ -32,6 +32,99 @@
 - [致谢](#致谢)
 - [许可](#许可)
 - [FAQ](#faq)
+
+---
+
+## 一步一步看（8 步，全图）
+
+下面每一张图都是本仓库脚本跑出来的产物，不是示意图、不是网上找的。
+每一步末尾给出生成它的命令，图片和数字永远对得上。
+
+### 1/8　数据：先看这任务有多难
+
+![六类样本](assets/step1_samples.png)
+
+六类缺陷、每类三张。低对比度、细结构、边界本身就模糊——这是后面所有指标的上限来源，
+不是模型不够大能解决的问题。
+
+![数据统计](assets/step1_stats.png)
+
+训练集上顺手统计了三件事：类别不均衡（`inclusion` 799 个实例 vs `pitted_surface` 322 个）、
+标注框面积的中位数只有 **11%**（**小目标为主**）、每张图通常 2–3 个框（最多 9 个）。
+
+### 2/8　标注：先确认训练目标本身是对的
+
+![标注框](assets/step2_annotations.png)
+
+颜色即类别，阴影是被标注出来的缺陷区域，标题里给了该类框面积的中位数。
+训练前逐类核对过漏标、错标和明显偏移。注意 `scratches` 的框宽只占图像约 6%——
+细长目标，这也是它最容易整个被漏掉的原因。
+
+### 3/8　数据增强：模型实际看到的画面
+
+![数据增强](assets/step3_augment.png)
+
+只画 YOLO 默认开启的那几种（HSV、水平翻转、平移、缩放、mosaic）。
+关键点：**框必须和像素同步变换**，框不跟着变，训练信号就是错的。
+
+### 4/8　训练：两组实验放进同一个坐标系
+
+![训练曲线](assets/curve_compare.png)
+
+同结构、同超参、同 seed，唯一变量是初始权重。
+微调组第 52 轮见顶后走平，从零组到第 60 轮仍在往上爬——这就是"预训练买到时间"的直接证据。
+
+### 5/8　评测：只在没见过的 180 张图上
+
+![逐类别](assets/per_class_map.png)
+
+![混淆矩阵](assets/step5_confusion.png)
+
+左边逐类对比微调与从零；右边是测试集上的混淆矩阵。
+`crazing` 与 `scratches` 互相误判的那两条对角线，在矩阵里能直接看到。
+
+![PR 曲线](assets/step5_pr_curve.png)
+
+与其盯曲线猜，不如直接把阈值扫一遍（`python scripts/threshold_sweep.py`，跑在测试集上）：
+
+| conf | Precision | Recall | F1 |
+|---|---|---|---|
+| 0.25 | 0.637 | 0.679 | 0.657 |
+| 0.35 | 0.743 | 0.599 | 0.663 |
+| 0.45 | 0.808 | 0.545 | 0.651 |
+
+阈值从 0.25 提到 0.45：精度 **+17 点**，召回 **−13 点**，F1 几乎没有变化。
+换句话说，工作点选在哪里不取决于哪个数字好看，而取决于这条线上**漏检和误报哪个更贵**。
+
+### 6/8　同一批图：标注 vs 预测
+
+![真值 vs 预测](assets/step6_quality.png)
+
+上排是人工标注，下排是网络自己输出的框。这是"模型真的在预测，而不是在读答案"最直接的证据。
+
+![批量结果](assets/result_grid.png)
+
+扩大到 8 张图的批量结果（绿框真值、红框预测，数字为置信度）。
+
+### 7/8　失效：它到底错在哪
+
+![失效案例](assets/step7_failures.png)
+
+四类错误由脚本**自动挑出**，不是手选好的一张：漏掉的小缺陷、漏掉的细长缺陷、
+误报、以及定位不精确（匹配上了但 IoU 只有 0.50–0.62）。
+每一条都能对应回上面的混淆矩阵。
+
+### 8/8　批量推理：连续 24 帧
+
+![批量推理](assets/step8_preview.gif)
+
+每一帧都是**现场推理**，不是预存的结果拼的。顶部是帧号和当前置信度阈值。
+
+以上所有图片，一条命令即可重建：
+
+```bash
+python scripts/workflow_figures.py --gif
+```
 
 ---
 
@@ -120,16 +213,6 @@ test 是 0.7213 / 0.3876 ——因为 checkpoint 是在 val 上挑的。从零�
 
 ---
 
-## 定性检查
-
-![真值 vs 预测](assets/result_grid.png)
-
-绿色为标注真值，红色为模型预测（数字为置信度），用 `seed=7` 从测试集采样。
-大区域（`patches`、`inclusion`）定位准确。这个小样本里能看到两种失败模式：纹理区域**完全没有出框**，
-以及弯曲、低对比度区域上边界不准——正是上面讨论的 `crazing` 那类情况。
-
----
-
 ## 快速开始
 
 上表的时间需要 CUDA 显卡；全部流程也能在 CPU 上跑，加 `--device cpu`（大约慢一个量级）。
@@ -162,9 +245,10 @@ python scripts/train.py --exp scratch
 # 8. 单独在测试集上评估任意 checkpoint
 python -c "from ultralytics import YOLO; print(YOLO('runs/finetune/weights/best.pt').val(data='dataset/neu_det.yaml', split='test', imgsz=320))"
 
-# 9. 重新生成本 README 里的图
-python scripts/predict_demo.py        # assets/result_grid.png
-python scripts/make_figures.py        # assets/curve_compare.png、assets/per_class_map.png
+# 9. 重新生成本 README 里的全部图片（--gif 会多渲一段 24 帧动图）
+python scripts/workflow_figures.py --gif   # step1~step8 全套
+python scripts/predict_demo.py             # assets/result_grid.png
+python scripts/make_figures.py             # assets/curve_compare.png、assets/per_class_map.png
 ```
 
 第 5–7 步是幂等的：`fetch_data.py` 发现 `neu_src/` 已存在就跳过克隆，
@@ -212,8 +296,10 @@ scripts/
   fetch_data.py        浅克隆源数据集到 neu_src/
   prepare_dataset.py   确定性三划分，写出 dataset/neu_det.yaml 与类别统计
   train.py             微调 / 从零训练，结束后自动在 test 上评测
+  workflow_figures.py  重建 README 里的步骤图 step1~step8（含动图）
   predict_demo.py      8 张测试图的 真值(绿) vs 预测(红) 拼图
   make_figures.py      重建 assets/curve_compare.png 与 assets/per_class_map.png
+  threshold_sweep.py   扫描不同置信度阈值下的精度/召回
 dataset/               由 prepare_dataset.py 生成，已 git-ignore
 runs/
   finetune/            results.csv、results.png、PR/F1 曲线、混淆矩阵、权重

@@ -19,10 +19,10 @@ pretrained weights are actually worth.
 
 ## Contents
 
+- [Step by step, in pictures](#step-by-step-in-pictures)
 - [Results](#results)
 - [Per-class breakdown](#per-class-breakdown)
 - [What the numbers actually say](#what-the-numbers-actually-say)
-- [Qualitative check](#qualitative-check)
 - [Quick start](#quick-start)
 - [Pipeline](#pipeline)
 - [Repository layout](#repository-layout)
@@ -34,6 +34,108 @@ pretrained weights are actually worth.
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
 - [FAQ](#faq)
+
+---
+
+## Step by step, in pictures
+
+Every panel below is produced by a script in this repository — nothing is a mock-up or an
+illustration sourced from elsewhere. The command that rebuilds each one is given at the end.
+
+### 1/8 · The data — how hard the task actually is
+
+![six classes](assets/step1_samples.png)
+
+Six classes, three samples each. Low contrast, thin structures, boundaries that are genuinely
+ambiguous at 200 px. This is the ceiling that no architecture choice can lift.
+
+![dataset statistics](assets/step1_stats.png)
+
+Three things worth knowing before training: class imbalance (`inclusion` 799 instances vs
+`pitted_surface` 322), a **median box area of only 11 %** of the crop — this is a small-object
+problem — and mostly 2–3 boxes per image (max 9).
+
+### 2/8 · Labels — confirm the training target before fitting anything
+
+![ground-truth boxes](assets/step2_annotations.png)
+
+Colour encodes the class, the shaded region is the annotated defect, and the title gives the
+median box area for that class. Every class was checked for missing, misplaced or badly skewed
+boxes before training. Note `scratches`: the box is about 6 % of the image width — an elongated
+target, which is exactly why it is the easiest one to miss entirely.
+
+### 3/8 · Augmentation — what the network really sees
+
+![augmentations](assets/step3_augment.png)
+
+Only the transforms YOLO enables by default (HSV, horizontal flip, translate, scale, mosaic).
+The point of the figure: **the box has to move with the pixels**. If it does not, the training
+signal is wrong and no amount of epochs will fix it.
+
+### 4/8 · Training — both runs on the same axes
+
+![training curves](assets/curve_compare.png)
+
+Same architecture, same hyper-parameters, same seed; the only variable is the initial weights.
+The fine-tuned run plateaus at epoch 52, the from-scratch run is still climbing at epoch 60.
+That is what "pretraining buys time" looks like as a curve.
+
+### 5/8 · Evaluation — on 180 images never used for fitting
+
+![per-class mAP](assets/per_class_map.png)
+
+![confusion matrix](assets/step5_confusion.png)
+
+Left: per-class comparison between the two runs. Right: the normalised confusion matrix on the
+test split — the `crazing` / `scratches` cross-talk is visible as the two off-diagonal cells.
+
+![PR curve](assets/step5_pr_curve.png)
+
+Rather than reading the knee off the curve, sweep the threshold directly
+(`python scripts/threshold_sweep.py`, on the test split):
+
+| conf | Precision | Recall | F1 |
+|---|---|---|---|
+| 0.25 | 0.637 | 0.679 | 0.657 |
+| 0.35 | 0.743 | 0.599 | 0.663 |
+| 0.45 | 0.808 | 0.545 | 0.651 |
+
+From 0.25 to 0.45: precision **+17 points**, recall **−13 points**, F1 essentially flat.
+Where the operating point belongs is decided by which error costs more on the line —
+not by which column looks better.
+
+### 6/8 · Same images — annotation vs prediction
+
+![ground truth vs prediction](assets/step6_quality.png)
+
+Top row is the annotation, bottom row is what the network produced on its own. This is the
+clearest evidence that the model predicts rather than recalls.
+
+![batch result](assets/result_grid.png)
+
+Eight more test images, green = ground truth, red = prediction, number = confidence.
+
+### 7/8 · Failure analysis — where it actually breaks
+
+![failure cases](assets/step7_failures.png)
+
+The four cases are **selected automatically** by matching predictions against ground truth, not
+hand-picked for a slide: a missed small defect, a missed elongated defect, a false positive, and
+an imprecise boundary (matched, but IoU only 0.50–0.62). Each maps back to a cell in the
+confusion matrix above.
+
+### 8/8 · Batch inference — 24 frames, running live
+
+![batch inference](assets/step8_preview.gif)
+
+Every frame is inferred at render time, not assembled from stored results. The header shows the
+frame index and the confidence threshold in use.
+
+Rebuild all of it with one command:
+
+```bash
+python scripts/workflow_figures.py --gif
+```
 
 ---
 
@@ -131,18 +233,6 @@ differences below 2–3 points should not be treated as signal.
 
 ---
 
-## Qualitative check
-
-![ground truth vs predictions](assets/result_grid.png)
-
-Green = annotated ground truth, red = prediction (number = confidence), sampled from the test
-split with `seed=7`. Large regions (`patches`, `inclusion`) are localised tightly. Two failure
-modes are visible in this small sample: textured areas that receive **no box at all**, and
-imprecise boundaries on crooked, low-contrast regions — exactly the `crazing` case discussed
-above.
-
----
-
 ## Quick start
 
 Requires a CUDA-capable GPU for the timings above; everything also runs on CPU with
@@ -176,9 +266,10 @@ python scripts/train.py --exp scratch
 # 8. evaluate any checkpoint on the test split, on its own
 python -c "from ultralytics import YOLO; print(YOLO('runs/finetune/weights/best.pt').val(data='dataset/neu_det.yaml', split='test', imgsz=320))"
 
-# 9. regenerate the figures in this README
-python scripts/predict_demo.py        # assets/result_grid.png
-python scripts/make_figures.py        # assets/curve_compare.png, assets/per_class_map.png
+# 9. regenerate every figure in this README (--gif also renders the 24-frame animation)
+python scripts/workflow_figures.py --gif   # step1..step8
+python scripts/predict_demo.py             # assets/result_grid.png
+python scripts/make_figures.py             # assets/curve_compare.png, assets/per_class_map.png
 ```
 
 Steps 5–7 are idempotent: `fetch_data.py` skips the clone if `neu_src/` already exists, and
@@ -226,8 +317,10 @@ scripts/
   fetch_data.py        shallow-clone the source dataset into neu_src/
   prepare_dataset.py   deterministic 3-way split, writes dataset/neu_det.yaml + class counts
   train.py             fine-tune or train-from-scratch, then evaluate on test
+  workflow_figures.py  rebuild step1..step8, including the animated GIF
   predict_demo.py      GT (green) vs prediction (red) grid on 8 test images
   make_figures.py      rebuild assets/curve_compare.png and assets/per_class_map.png
+  threshold_sweep.py   precision/recall at several confidence thresholds
 dataset/               generated by prepare_dataset.py, git-ignored
 runs/
   finetune/            results.csv, results.png, PR/F1 curves, confusion matrices, weights
