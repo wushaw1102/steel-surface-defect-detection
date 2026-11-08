@@ -1,0 +1,14 @@
+experiment: scratch
+epochs: 60
+test mAP50:    0.6760
+test mAP50-95: 0.3345
+test precision: 0.6695
+test recall:    0.5942
+
+per-class mAP50-95:
+  crazing          0.1440
+  inclusion        0.4067
+  patches          0.5723
+  pitted_surface   0.4050
+  rolled-in_scale  0.2334
+  scratches        0.2457

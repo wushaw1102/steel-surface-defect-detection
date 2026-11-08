@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# 数据集与权重（体积大 / 可由脚本重新生成）
+neu_src/
+dataset/
+*.pt
+
+# 系统
+.DS_Store
+Thumbs.db

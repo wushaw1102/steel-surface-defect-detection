@@ -1,0 +1,14 @@
+experiment: finetune
+epochs: 60
+test mAP50:    0.7213
+test mAP50-95: 0.3876
+test precision: 0.6120
+test recall:    0.6924
+
+per-class mAP50-95:
+  crazing          0.1593
+  inclusion        0.4373
+  patches          0.6240
+  pitted_surface   0.4024
+  rolled-in_scale  0.3014
+  scratches        0.4012
