@@ -1,0 +1,20 @@
+# Keep text LF in the repository so a Windows checkout behaves like a Linux one,
+# and never let git touch the bytes of images, plots or checkpoints.
+* text=auto eol=lf
+
+*.py        text
+*.md        text
+*.txt       text
+*.csv       text
+*.yaml      text
+*.yml       text
+*.toml      text
+*.cfg       text
+
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.bmp       binary
+*.pt        binary
+*.pth       binary
+*.onnx      binary

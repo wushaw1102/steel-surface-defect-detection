@@ -1,4 +1,5 @@
 """Render test-set predictions: ground truth in green, predictions in red."""
+import argparse
 import random
 from pathlib import Path
 
@@ -8,7 +9,6 @@ from ultralytics import YOLO
 ROOT = Path("dataset/neu_det")
 OUT = Path("assets")
 OUT.mkdir(parents=True, exist_ok=True)
-WEIGHTS = Path("runs/finetune/weights/best.pt")
 CELL = 300
 COLS, ROWS = 4, 2
 random.seed(7)
@@ -36,9 +36,26 @@ def draw(img, boxes, color, width=2, confs=None):
 
 
 def main():
-    if not WEIGHTS.exists():
-        raise SystemExit("缺少权重 runs/finetune/weights/best.pt，请先运行 scripts/train.py --exp finetune")
-    model = YOLO(str(WEIGHTS))
+    ap = argparse.ArgumentParser(description="GT vs prediction grid on the test split")
+    ap.add_argument("--weights", default="runs/finetune/weights/best.pt",
+                    help="checkpoint to visualise; a release download works too")
+    ap.add_argument("--conf", type=float, default=0.25)
+    ap.add_argument("--seed", type=int, default=7, help="which 8 images to sample")
+    ap.add_argument("--out", default=str(OUT / "result_grid.png"))
+    args = ap.parse_args()
+
+    weights = Path(args.weights)
+    if not weights.exists():
+        raise SystemExit(
+            f"missing {weights}\n"
+            "train it with `python scripts/train.py --exp finetune`, or grab the\n"
+            "published checkpoint from the Releases page."
+        )
+    if not (ROOT / "images" / "test").exists():
+        raise SystemExit(f"missing {ROOT}, run scripts/fetch_data.py and scripts/prepare_dataset.py first")
+
+    random.seed(args.seed)
+    model = YOLO(str(weights))
     imgs = sorted((ROOT / "images" / "test").glob("*"))
     picks = random.sample(imgs, COLS * ROWS)
 
@@ -46,7 +63,7 @@ def main():
     for idx, p in enumerate(picks):
         img = Image.open(p).convert("RGB").resize((CELL, CELL))
         gt = load_gt(p.stem)
-        res = model.predict(p, imgsz=320, conf=0.25, verbose=False)[0]
+        res = model.predict(p, imgsz=320, conf=args.conf, verbose=False)[0]
         preds, confs = [], []
         for b in res.boxes:
             x1, y1, x2, y2 = b.xyxy[0].tolist()
@@ -65,7 +82,8 @@ def main():
         img = draw(img, preds, (220, 40, 40), 2, confs)
         canvas.paste(img, ((idx % COLS) * CELL, (idx // COLS) * CELL))
 
-    out = OUT / "result_grid.png"
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(out)
     print("saved", out)
 
