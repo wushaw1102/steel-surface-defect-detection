@@ -170,11 +170,13 @@ python scripts/make_figures.py        # assets/curve_compare.png、assets/per_cl
 第 5–7 步是幂等的：`fetch_data.py` 发现 `neu_src/` 已存在就跳过克隆，
 `prepare_dataset.py` 每次都会清空并重建 `dataset/neu_det/`。
 
-不想训练？微调后的 `best.pt` 挂在
-[Releases](https://github.com/wushaw1102/steel-surface-defect-detection/releases) 上。
+不想训练？微调后的 `best.pt`（5.2 MB）挂在
+[release v1.0.0](https://github.com/wushaw1102/steel-surface-defect-detection/releases/tag/v1.0.0) 上。
 放进 `runs/finetune/weights/`，或者直接指给可视化脚本：
 
 ```bash
+# 也可以自己下
+curl -L -o best.pt https://github.com/wushaw1102/steel-surface-defect-detection/releases/download/v1.0.0/best.pt
 python scripts/predict_demo.py --weights best.pt
 ```
 

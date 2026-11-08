@@ -184,11 +184,13 @@ python scripts/make_figures.py        # assets/curve_compare.png, assets/per_cla
 Steps 5–7 are idempotent: `fetch_data.py` skips the clone if `neu_src/` already exists, and
 `prepare_dataset.py` wipes and rebuilds `dataset/neu_det/` from scratch on every run.
 
-No checkpoint? The fine-tuned `best.pt` is attached to
-[Releases](https://github.com/wushaw1102/steel-surface-defect-detection/releases). Drop it into
-`runs/finetune/weights/` or point the visualiser at it directly:
+No checkpoint? The fine-tuned `best.pt` (5.2 MB) is attached to
+[release v1.0.0](https://github.com/wushaw1102/steel-surface-defect-detection/releases/tag/v1.0.0).
+Drop it into `runs/finetune/weights/`, or point the visualiser at it directly:
 
 ```bash
+# either fetch it yourself
+curl -L -o best.pt https://github.com/wushaw1102/steel-surface-defect-detection/releases/download/v1.0.0/best.pt
 python scripts/predict_demo.py --weights best.pt
 ```
 
