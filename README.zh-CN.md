@@ -84,8 +84,10 @@
 - 剩下 14 张盲标，看不到原标注；
 - 最后逐框比对，统计只算这 14 张。
 
-标注工具就是仓库里这一个 HTML 文件（`annotation_task/annotate.html`，图片内嵌，双击即用，
-零安装）——只有 18 张，与其去学一个标注平台，不如直接写一个。
+标注是在本地跑的 **Label Studio**（社区版 1.23）里做的：一个项目、6 个矩形标签、18 张图导入，
+标完直接导出 YOLO。`annotation_task/label_studio_export_yolo.zip` 就是那份导出原件，
+`scripts/import_label_studio_export.py` 负责把 Label Studio 加的文件名 UUID 前缀去掉、
+对回图像名。仓库里另外附了一个零安装的单页标注器 `annotate.html`，没有环境的人也能照着复现。
 
 | 逐框（同类且 IoU ≥ 0.50） | 值 |
 |---|---|
@@ -353,9 +355,11 @@ scripts/
   threshold_sweep.py   扫描不同置信度阈值下的精度/召回
   audit_labels.py      标注结构性审查（越界／重复／退化框）
   import_annotations_json.py  标注页导出的 JSON → YOLO 标签（左上原点 → 中心原点）
+  import_label_studio_export.py  Label Studio 的 YOLO 导出包 → YOLO 标签（去掉文件名 UUID）
   compare_annotations.py      与原标注的逐框 + 区域级一致性比对
 annotation_task/       复标任务：18 张图、标注页、以及复标结果
   annotate.html        单文件标注页，图片已内嵌，零安装
+  label_studio_export_yolo.zip  Label Studio 导出的原始 YOLO 包
   annotations.json     标注页导出的原始结果
   labels/              同一份结果转成的 YOLO 标签
   annotation_audit.md  第 2 节引用的那些一致性数字

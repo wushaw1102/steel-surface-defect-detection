@@ -90,8 +90,12 @@ the answer down. 18 test images (3 per class) got a second annotation pass:
 - the other 14 drawn blind, with no access to the originals;
 - then compared box by box, counting only the 14 blind ones.
 
-The tool is the single HTML file in this repository (`annotation_task/annotate.html`, images
-inlined, zero install) — for 18 images, writing one beat learning an annotation platform.
+The pass was done in a local **Label Studio** (community 1.23): one project, six rectangle labels,
+18 images imported, exported straight to YOLO. `annotation_task/label_studio_export_yolo.zip` is
+that export as it came out; `scripts/import_label_studio_export.py` strips the UUID prefix Label
+Studio puts on every filename and maps the files back to their images. A zero-install
+single-page annotator (`annotate.html`) is kept alongside it so the job can be replayed without an
+environment.
 
 | Box-level (same class, IoU ≥ 0.50) | value |
 |---|---|
@@ -378,9 +382,11 @@ scripts/
   threshold_sweep.py   precision/recall at several confidence thresholds
   audit_labels.py      structural audit of the labels (out-of-bounds, duplicates, ...)
   import_annotations_json.py   browser annotation JSON -> YOLO labels (top-left -> centre origin)
+  import_label_studio_export.py  Label Studio YOLO zip -> YOLO labels (drops the filename UUID)
   compare_annotations.py       box-level + region-level agreement against the dataset labels
 annotation_task/       the re-annotation job: 18 images, the page, and what came out of it
   annotate.html        single-file annotator, images inlined, no install
+  label_studio_export_yolo.zip  the Label Studio export, as it came out
   annotations.json     the pass as exported by the page
   labels/              same, converted to YOLO format
   annotation_audit.md  the agreement numbers quoted in section 2
