@@ -1,17 +1,15 @@
 复标任务：18 张（每类 3 张，取自 test 划分，seed=2026）
 
-【用 Label Studio 标】（推荐，实际就是这么做的）
+【用 Label Studio 标】
 1. 启动服务（在项目根目录）
      .venv-ls\Scripts\label-studio.exe start
 2. 浏览器打开 http://localhost:8080
-   账号 annotator@local.lan / LabelStudio2026
-3. 项目 "NEU-DET re-annotation · 18 crops" 已建好，18 张图已导入，6 个类别已配置
+   账号 
+3. 项目 "NEU-DET re-annotation · 18 crops" ，18 张图导入，6 个类别配置
 4. 按 1~6 选类别 → 鼠标拖出矩形 → Ctrl+Enter 提交并跳下一张
 5. 项目页 Export → 格式选 YOLO → 得到 zip
 
-【没有环境时用这个单页工具】
-双击 annotate.html（Chrome / Edge 打开，图片已内嵌，不用装任何东西）
-鼠标拖框 → 按 1~6 选类别 → 回车下一张 → 画完点“导出 JSON”
+
 
 【规则】
 - 原标注没有放进这个目录。4 张用来定框选粒度（对照 dataset/neu_det/labels/test/），
