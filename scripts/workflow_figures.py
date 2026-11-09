@@ -198,10 +198,55 @@ def fig_annotations():
                 )
     fig.suptitle("Ground-truth boxes — the target the model has to reproduce, class by class",
                  fontsize=11, y=0.99)
-    fig.text(0.5, 0.005, "shaded region = annotated defect; checked for misplaced or missing boxes before training",
+    fig.text(0.5, 0.005, "shaded region = annotated defect, as provided by the dataset — these labels are not redrawn here",
              ha="center", fontsize=8.5, color="#666")
     fig.tight_layout(rect=[0, 0.02, 1, 0.945])
     fig.savefig(ASSETS / "step2_annotations.png", dpi=140)
+    plt.close(fig)
+
+
+# ----------------------------------------------- step 2b: label quality audit
+def fig_label_audit():
+    """Show what the structural audit actually flags: whole-crop boxes and duplicated boxes."""
+    coarse, dups = [], []
+    for split in ("train", "val", "test"):
+        for p in imgs_of(split):
+            lbs = labels_of(split, p.stem)
+            for c, cx, cy, w, h in lbs:
+                if w * h > 0.95 and len(coarse) < 3:
+                    coarse.append((p, split, (c, cx, cy, w, h)))
+            for i in range(len(lbs)):
+                for j in range(i + 1, len(lbs)):
+                    a, b = lbs[i], lbs[j]
+                    if a[0] == b[0] and iou(a, b) > 0.90 and len(dups) < 3:
+                        dups.append((p, split, a, b))
+            if len(coarse) >= 3 and len(dups) >= 3:
+                break
+
+    picks = [("whole-crop box (area > 95%)", p, sp, [b], "no localisation information")
+             for p, sp, b in coarse]
+    picks += [("duplicate box (same class, IoU > 0.90)", p, sp, [a, b], "the same defect labeled twice")
+              for p, sp, a, b in dups]
+
+    n = len(picks)
+    fig, axes = plt.subplots(1, max(n, 1), figsize=(3.1 * max(n, 1), 3.9))
+    axes = np.atleast_1d(axes)
+    for ax, (title, p, sp, bx, note) in zip(axes, picks):
+        ax.imshow(Image.open(p).convert("RGB"), extent=(0, 1, 1, 0))
+        if len(bx) == 2:  # 两个近乎重合的框：一实一虚，否则看起来只有一个
+            add_boxes(ax, [bx[0]], "#e63232", lw=3.0, fill=0.14)
+            add_boxes(ax, [bx[1]], "#1f77b4", lw=1.5, fill=0, ls="--")
+        else:
+            add_boxes(ax, bx, "#e63232", lw=2.6, fill=0.14)
+        ax.set_title(title, fontsize=8.5, pad=4)
+        ax.set_xlabel(note, fontsize=7.2, color="#777")
+        style(ax)
+    for ax in axes[len(picks):]:
+        ax.axis("off")
+    fig.suptitle("Label audit — the two structural defects the script finds in 4 189 boxes",
+                 fontsize=10.5, y=1.03)
+    fig.tight_layout()
+    fig.savefig(ASSETS / "step2b_label_audit.png", dpi=140, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -511,6 +556,7 @@ def main():
     fig_samples()
     fig_class_stats()
     fig_annotations()
+    fig_label_audit()
     fig_augment()
     copy_existing()
 
