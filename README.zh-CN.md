@@ -77,6 +77,40 @@
 
 `scratches` 的框宽只占图像约 6%，细长目标，是六类里最容易整个被漏掉的一类。
 
+**所以干脆自己重标一遍。** 目的不是替换原标注，而是要量一量：这批标注到底把答案钉得有多死。
+从 test 划分抽 18 张（每类 3 张），在看不到原标注的情况下重新画框：
+
+- 先拿 4 张定规矩（crazing 按裂纹簇切开，inclusion 每条夹杂单独成框）；
+- 剩下 14 张盲标；
+- 最后逐框比对。
+
+标注工具就是仓库里这一个 HTML 文件（`annotation_task/annotate.html`，图片内嵌，双击即用，
+零安装）——只有 18 张，与其去学一个标注平台，不如直接写一个。
+
+| 逐框（同类且 IoU ≥ 0.50） |  |
+|---|---|
+| 原标注框 / 我标的框 | 33 / 35 |
+| 匹配上 | 13 |
+| 召回 / 精度 / F1 | 0.394 / 0.371 / **0.382** |
+
+这个数字很难看，第一反应是"标注有问题"——但并不是。逐框 F1 会重罚一件本身合理的事：
+**同一片缺陷切成几个框**。所以把两边的框都栅格化成掩膜，改按面积比：
+
+| 区域级（与切分粒度无关） |  |
+|---|---|
+| 区域 IoU | 0.579 |
+| 原标注的缺陷区域被复标覆盖 | **0.820** |
+| 复标区域里确实是缺陷的比例 | 0.663 |
+
+82% 的缺陷区域被重标时又找到了；多出来的 34% 是框画得松。也就是说：分歧在框的松紧和切法，
+不在漏看。
+
+![复标对比](assets/step2c_annotation_compare.png)
+
+这和上面的审查指向同一件事，只是从另一头看：在这份数据集上，"缺陷在哪"大致可以复现到
+0.82 的区域召回，而"框该多大"并不可复现。对检测器来说，这意味着定位误差有一部分是标注
+本身带进来的——第 5 节里 `pitted_surface` 的表现正是这个后果。
+
 ### 3/8　数据增强：模型实际看到的画面
 
 ![数据增强](assets/step3_augment.png)
@@ -318,6 +352,13 @@ scripts/
   make_figures.py      重建 assets/curve_compare.png 与 assets/per_class_map.png
   threshold_sweep.py   扫描不同置信度阈值下的精度/召回
   audit_labels.py      标注结构性审查（越界／重复／退化框）
+  import_annotations_json.py  标注页导出的 JSON → YOLO 标签（左上原点 → 中心原点）
+  compare_annotations.py      与原标注的逐框 + 区域级一致性比对
+annotation_task/       复标任务：18 张图、标注页、以及复标结果
+  annotate.html        单文件标注页，图片已内嵌，零安装
+  annotations.json     标注页导出的原始结果
+  labels/              同一份结果转成的 YOLO 标签
+  annotation_audit.md  第 2 节引用的那些一致性数字
 dataset/               由 prepare_dataset.py 生成，已 git-ignore
 runs/
   finetune/            results.csv、results.png、PR/F1 曲线、混淆矩阵、权重
@@ -336,7 +377,8 @@ assets/                本 README 内嵌的图
 `pitted_surface`、`rolled-in_scale`、`scratches`。灰度、200 × 200、共 1800 张。
 本仓库使用 YOLO 格式镜像
 [`Marfbin/NEU-DET-with-yolov8`](https://github.com/Marfbin/NEU-DET-with-yolov8)，
-这样就没有任何隐藏的格式转换步骤。**数据集本身不在本仓库分发。**
+这样就没有任何隐藏的格式转换步骤。**完整数据集不在本仓库分发**；只有复标实验用到的那 18 张
+（每类 3 张）放在 `annotation_task/images/` 里，好让复标这一步可以原样重放。
 
 | 划分 | 图片 | 实例 | crazing | inclusion | patches | pitted_surface | rolled-in_scale | scratches |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|

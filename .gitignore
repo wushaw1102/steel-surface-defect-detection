@@ -27,7 +27,6 @@ runs/**/weights/
 .DS_Store
 Thumbs.db
 
-# Label Studio 环境与运行时文件
+# Label Studio 运行时文件（改用自带标注页后仅留此条兜底）
 .venv-ls/
 ls_server.log
-annotation_task/
