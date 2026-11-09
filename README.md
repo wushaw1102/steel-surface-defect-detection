@@ -52,16 +52,16 @@ Three things worth knowing before training: class imbalance (`inclusion` 799 ins
 `pitted_surface` 322), a **median box area of only 11 %** of the crop — this is a small-object
 problem — and mostly 2–3 boxes per image (max 9).
 
-### 2/8 · Labels — confirm the training target before fitting anything
+### 2/8 · Labels — audit the training target before fitting anything
 
 ![ground-truth boxes](assets/step2_annotations.png)
 
 Colour encodes the class, the shaded region is the annotated defect, and the title gives the
 median box area for that class.
 
-**To be explicit:** these labels ship with the public dataset — I did not redraw them. So instead
-of claiming a manual review, the labels are treated as *data* and audited for the structural
-defects that break training (`scripts/audit_labels.py`, no human judgement, criteria hard-coded):
+Whether the labels can be trained on directly is a separate question, so before anything else
+they get a **structural audit** — all 1 800 files / 4 189 boxes, criteria hard-coded in
+`scripts/audit_labels.py` rather than judged by eye:
 
 | Check | Rule | Hits |
 |---|---|---|
