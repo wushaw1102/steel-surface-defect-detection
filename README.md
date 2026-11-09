@@ -83,12 +83,12 @@ more are the same defect labelled twice.
 the easiest one to miss entirely.
 
 **So the labels were re-drawn once.** Not to replace them — to measure how tightly they actually pin
-the answer down. 18 test images (3 per class) annotated again from scratch, without looking:
+the answer down. 18 test images (3 per class) got a second annotation pass:
 
-- 4 images first, to fix the convention (crazing cut into crack clusters, each inclusion streak its
-  own box);
-- the remaining 14 drawn blind;
-- then compared box by box.
+- 4 of them with the dataset's boxes in view, purely to fix the convention (crazing is cut into
+  crack clusters, each inclusion streak gets its own box);
+- the other 14 drawn blind, with no access to the originals;
+- then compared box by box, counting only the 14 blind ones.
 
 The tool is the single HTML file in this repository (`annotation_task/annotate.html`, images
 inlined, zero install) — for 18 images, writing one beat learning an annotation platform.
