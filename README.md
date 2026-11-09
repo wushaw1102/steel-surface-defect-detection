@@ -93,7 +93,7 @@ the answer down. 18 test images (3 per class) annotated again from scratch, with
 The tool is the single HTML file in this repository (`annotation_task/annotate.html`, images
 inlined, zero install) — for 18 images, writing one beat learning an annotation platform.
 
-| Box-level (same class, IoU ≥ 0.50) | |
+| Box-level (same class, IoU ≥ 0.50) | value |
 |---|---|
 | dataset boxes / mine | 33 / 35 |
 | matched | 13 |
@@ -103,7 +103,7 @@ That is a bad number, and the first reading is "the labels are wrong" — they a
 punishes a perfectly legitimate difference: **how many boxes one defect gets sliced into**. So both
 passes were rasterised into masks and compared by area instead:
 
-| Region-level (granularity-free) | |
+| Region-level (granularity-free) | value |
 |---|---|
 | region IoU | 0.579 |
 | dataset defect area covered by my boxes | **0.820** |
